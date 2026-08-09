@@ -30,6 +30,13 @@
   background: transparent;
 }
 
+.actions-menu-item,
+.card-actions .btn-icon {
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
 .actions-menu {
   position: absolute;
   top: calc(100% + 6px);
