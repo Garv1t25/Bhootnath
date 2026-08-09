@@ -149,6 +149,34 @@ input, button, textarea {
   background: rgba(255, 255, 255, 0.1);
 }
 
+/* Load more */
+.load-more-btn {
+  display: block;
+  width: 100%;
+  margin-top: 16px;
+  padding: 14px;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.load-more-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.load-more-btn:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
 /* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 6px;

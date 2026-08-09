@@ -26,11 +26,67 @@ const getDuplicateCustomer = async (mobile, excludeId) => {
 
 export const getCustomers = async (req, res) => {
   try {
-    const customers = await Customer.find().sort({ createdAt: -1 });
-    res.status(200).json(customers);
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
+    const search = String(req.query.search ?? "").trim();
+    const filter = String(req.query.filter ?? "all").trim();
+
+    const query = buildCustomerQuery({ search, filter });
+
+    const total = await Customer.countDocuments(query);
+    const customers = await Customer.find(query)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit);
+
+    res.status(200).json({
+      customers,
+      pagination: {
+        page,
+        limit,
+        total,
+        hasMore: page * limit < total,
+      },
+    });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
+};
+
+const buildCustomerQuery = ({ search, filter }) => {
+  const query = {};
+
+  if (search) {
+    const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    query.$or = [
+      { name: { $regex: escaped, $options: "i" } },
+      { mobile: { $regex: escaped } },
+    ];
+  }
+
+  if (filter && filter !== "all") {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const dayInMs = 24 * 60 * 60 * 1000;
+
+    switch (filter) {
+      case "pending":
+        query.$expr = {
+          $lt: [{ $ifNull: ["$paidAmount", "$amount"] }, "$amount"],
+        };
+        break;
+      case "inactive":
+        query.endDate = { $lt: now };
+        break;
+      case "expiring":
+        query.endDate = { $gte: today, $lt: new Date(today.getTime() + 5 * dayInMs) };
+        break;
+      default:
+        query.planType = filter;
+    }
+  }
+
+  return query;
 };
 
 const validateCustomer = (body) => {
@@ -70,6 +126,108 @@ const validateCustomer = (body) => {
   }
 
   return null;
+};
+
+export const getCustomerStats = async (req, res) => {
+  try {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const dayInMs = 24 * 60 * 60 * 1000;
+
+    const [result] = await Customer.aggregate([
+      {
+        $facet: {
+          total: [{ $count: "count" }],
+          active: [
+            { $match: { endDate: { $gte: today } } },
+            {
+              $group: {
+                _id: null,
+                count: { $sum: 1 },
+                revenue: { $sum: "$amount" },
+                pending: {
+                  $sum: {
+                    $max: [
+                      { $subtract: ["$amount", { $ifNull: ["$paidAmount", "$amount"] }] },
+                      0,
+                    ],
+                  },
+                },
+                byPlan: {
+                  $push: {
+                    plan: {
+                      $cond: [
+                        { $eq: [{ $trim: { input: { $ifNull: ["$plan", ""] } } }, ""] },
+                        "Unspecified plan",
+                        { $trim: { input: { $ifNull: ["$plan", ""] } } },
+                      ],
+                    },
+                    amount: "$amount",
+                  },
+                },
+              },
+            },
+          ],
+          expired: [
+            { $match: { endDate: { $lt: today } } },
+            {
+              $group: {
+                _id: null,
+                count: { $sum: 1 },
+                pending: {
+                  $sum: {
+                    $max: [
+                      { $subtract: ["$amount", { $ifNull: ["$paidAmount", "$amount"] }] },
+                      0,
+                    ],
+                  },
+                },
+              },
+            },
+          ],
+          expiringSoon: [
+            { $match: { endDate: { $gte: today, $lte: new Date(today.getTime() + 3 * dayInMs) } } },
+            { $count: "count" },
+          ],
+        },
+      },
+    ]);
+
+    const activeStats = result.active[0];
+    const expiredStats = result.expired[0];
+    const revenueByPlan = {};
+
+    for (const { plan, amount } of activeStats?.byPlan ?? []) {
+      revenueByPlan[plan] = revenueByPlan[plan] || { subscriptions: 0, totalAmount: 0 };
+      revenueByPlan[plan].subscriptions += 1;
+      revenueByPlan[plan].totalAmount += amount;
+    }
+
+    res.status(200).json({
+      stats: {
+        total: result.total[0]?.count ?? 0,
+        active: activeStats?.count ?? 0,
+        expired: expiredStats?.count ?? 0,
+        expiringSoon: result.expiringSoon[0]?.count ?? 0,
+        activeRevenue: activeStats?.revenue ?? 0,
+        totalPending: (activeStats?.pending ?? 0) + (expiredStats?.pending ?? 0),
+        planRevenue: Object.entries(revenueByPlan).sort(
+          ([, firstPlan], [, secondPlan]) => secondPlan.totalAmount - firstPlan.totalAmount
+        ),
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+export const getCustomersExport = async (req, res) => {
+  try {
+    const customers = await Customer.find().sort({ createdAt: -1 });
+    res.status(200).json(customers);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
 };
 
 export const addCustomer = async (req, res) => {

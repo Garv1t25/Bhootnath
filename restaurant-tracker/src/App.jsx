@@ -10,12 +10,17 @@ import PaymentModal from './components/PaymentModal';
 import { apiRequest, getApiMessage } from './api';
 import { customersToCsv, downloadCsv } from './utils/exportCsv';
 
+const PAGE_SIZE = 20;
+
 function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [customerToEdit, setCustomerToEdit] = useState(null);
   const [customers, setCustomers] = useState([]);
+  const [stats, setStats] = useState(null);
+  const [pagination, setPagination] = useState({ page: 0, limit: PAGE_SIZE, total: 0, hasMore: false });
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isUserManagementOpen, setIsUserManagementOpen] = useState(false);
@@ -24,15 +29,22 @@ function App() {
   const handleSessionExpired = () => {
     setCurrentUser(null);
     setCustomers([]);
+    setStats(null);
     setIsModalOpen(false);
     setCustomerToEdit(null);
     setIsUserManagementOpen(false);
     setPaymentCustomer(null);
   };
 
-  const fetchCustomers = async () => {
+  const fetchCustomersPage = async (pageNumber, { append = false } = {}) => {
     try {
-      const response = await apiRequest('/customers');
+      const params = new URLSearchParams({
+        page: String(pageNumber),
+        limit: String(PAGE_SIZE),
+        search: searchQuery,
+        filter,
+      });
+      const response = await apiRequest(`/customers?${params}`);
 
       if (response.status === 401) {
         handleSessionExpired();
@@ -44,10 +56,31 @@ function App() {
       }
 
       const data = await response.json();
-      const formattedData = data.map((customer) => ({ ...customer, id: customer._id }));
-      setCustomers(formattedData);
+      const formattedData = data.customers.map((customer) => ({ ...customer, id: customer._id }));
+      setCustomers((currentCustomers) => append ? [...currentCustomers, ...formattedData] : formattedData);
+      setPagination(data.pagination);
     } catch (error) {
       console.error('Error fetching customers:', error);
+    }
+  };
+
+  const fetchStats = async () => {
+    try {
+      const response = await apiRequest('/customers/stats');
+
+      if (response.status === 401) {
+        handleSessionExpired();
+        return;
+      }
+
+      if (!response.ok) {
+        return;
+      }
+
+      const { stats: loadedStats } = await response.json();
+      setStats(loadedStats);
+    } catch (error) {
+      console.error('Error fetching stats:', error);
     }
   };
 
@@ -83,10 +116,17 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (currentUser) {
-      fetchCustomers();
+    if (!currentUser) {
+      return undefined;
     }
-  }, [currentUser]);
+
+    const debounceTimer = setTimeout(() => {
+      fetchCustomersPage(1);
+      fetchStats();
+    }, 300);
+
+    return () => clearTimeout(debounceTimer);
+  }, [searchQuery, filter, currentUser]);
 
   const handleAddCustomer = async (newCustomer) => {
     try {
@@ -107,6 +147,7 @@ function App() {
       const savedCustomer = await response.json();
       savedCustomer.id = savedCustomer._id;
       setCustomers((currentCustomers) => [savedCustomer, ...currentCustomers]);
+      fetchStats();
     } catch (error) {
       console.error('Error adding customer:', error);
       alert(error.message || 'Unable to add customer.');
@@ -134,6 +175,7 @@ function App() {
       setCustomers((currentCustomers) => currentCustomers.map((customer) => (
         customer.id === savedCustomer.id ? savedCustomer : customer
       )));
+      fetchStats();
     } catch (error) {
       console.error('Error updating customer:', error);
       alert(error.message || 'Unable to update customer.');
@@ -161,6 +203,7 @@ function App() {
       }
 
       setCustomers((currentCustomers) => currentCustomers.filter((customer) => customer.id !== id));
+      fetchStats();
     } catch (error) {
       console.error('Error deleting customer:', error);
       alert(error.message || 'Unable to delete customer.');
@@ -187,18 +230,48 @@ function App() {
     setCustomers((currentCustomers) => currentCustomers.map((customer) => (
       customer.id === savedCustomer.id ? savedCustomer : customer
     )));
+    fetchStats();
     return savedCustomer;
   };
 
-  const handleExportCsv = () => {
-    if (customers.length === 0) {
-      alert('No customers to export.');
+  const handleExportCsv = async () => {
+    try {
+      const response = await apiRequest('/customers/export');
+
+      if (response.status === 401) {
+        handleSessionExpired();
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(await getApiMessage(response, 'Unable to export customers.'));
+      }
+
+      const allCustomers = await response.json();
+
+      if (allCustomers.length === 0) {
+        alert('No customers to export.');
+        return;
+      }
+
+      const formattedCustomers = allCustomers.map((customer) => ({ ...customer, id: customer._id }));
+      const csvText = customersToCsv(formattedCustomers);
+      const dateStamp = new Date().toISOString().split('T')[0];
+      downloadCsv(csvText, `customers-${dateStamp}.csv`);
+    } catch (error) {
+      console.error('Error exporting customers:', error);
+      alert(error.message || 'Unable to export customers.');
+    }
+  };
+
+  const handleLoadMore = async () => {
+    if (!pagination.hasMore || isLoadingMore) {
       return;
     }
 
-    const csvText = customersToCsv(customers);
-    const dateStamp = new Date().toISOString().split('T')[0];
-    downloadCsv(csvText, `customers-${dateStamp}.csv`);
+    setIsLoadingMore(true);
+    await fetchCustomersPage(pagination.page + 1, { append: true });
+    setIsLoadingMore(false);
   };
 
   const handleLogout = async () => {
@@ -210,30 +283,6 @@ function App() {
       handleSessionExpired();
     }
   };
-
-  const filteredCustomers = customers.filter(customer => {
-    const matchesSearch = customer.name.toLowerCase().includes(searchQuery.toLowerCase()) || customer.mobile.includes(searchQuery);
-    
-    let matchesFilter = true;
-    if (filter === 'pending') {
-      const amount = Number(customer.amount) || 0;
-      const paid = Number(customer.paidAmount ?? amount) || 0;
-      matchesFilter = paid < amount;
-    } else if (filter === 'inactive') {
-      matchesFilter = new Date(customer.endDate) < new Date();
-    } else if (filter === 'expiring') {
-      const end = new Date(customer.endDate);
-      end.setHours(0, 0, 0, 0);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const daysLeft = Math.ceil((end - today) / (1000 * 60 * 60 * 24));
-      matchesFilter = daysLeft >= 0 && daysLeft < 5;
-    } else if (filter !== 'all') {
-      matchesFilter = customer.planType === filter;
-    }
-    
-    return matchesSearch && matchesFilter;
-  });
 
   if (isAuthLoading) {
     return <div className="auth-loading">Checking your session...</div>;
@@ -256,11 +305,11 @@ function App() {
         onExportCsv={handleExportCsv}
       />
 
-      <DashboardStats customers={customers} />
+      <DashboardStats stats={stats} />
       
       <main>
         <CustomerList 
-          customers={filteredCustomers} 
+          customers={customers} 
           onDelete={handleDeleteCustomer}
           onEdit={(customer) => {
             setCustomerToEdit(customer);
@@ -268,6 +317,9 @@ function App() {
           }}
           onRenew={handleRenewCustomer}
           onRecordPayment={setPaymentCustomer}
+          onLoadMore={handleLoadMore}
+          hasMore={pagination.hasMore}
+          isLoadingMore={isLoadingMore}
         />
       </main>
 
