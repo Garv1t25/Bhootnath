@@ -2,6 +2,7 @@ import express from "express";
 import rateLimit from "express-rate-limit";
 import {
   createStaffUser,
+  deleteStaffUser,
   getCurrentUser,
   listUsers,
   login,
@@ -26,5 +27,6 @@ router.get("/me", requireAuth, getCurrentUser);
 router.get("/users", requireAuth, requireRole("admin"), listUsers);
 router.post("/users", requireAuth, requireRole("admin"), createStaffUser);
 router.patch("/users/:id", requireAuth, requireRole("admin"), updateStaffUser);
+router.delete("/users/:id", requireAuth, requireRole("admin"), deleteStaffUser);
 
 export default router;

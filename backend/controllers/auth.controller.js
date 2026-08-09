@@ -137,3 +137,19 @@ export const updateStaffUser = async (req, res) => {
     return res.status(500).json({ message: "Unable to update the staff user right now." });
   }
 };
+
+export const deleteStaffUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+
+    if (!user || user.role !== "staff") {
+      return res.status(404).json({ message: "Staff user not found." });
+    }
+
+    await User.deleteOne({ _id: user._id });
+    return res.status(200).json({ message: "Staff account deleted." });
+  } catch (error) {
+    console.error("Unable to delete staff user:", error);
+    return res.status(500).json({ message: "Unable to delete the staff user right now." });
+  }
+};

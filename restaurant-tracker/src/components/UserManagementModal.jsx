@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Key, UserCheck, UserPlus, UserX, X } from 'lucide-react';
+import { Key, Trash2, UserCheck, UserPlus, UserX, X } from 'lucide-react';
 import { apiRequest, getApiMessage } from '../api';
 import './UserManagementModal.css';
 import PasswordField from './PasswordField';
@@ -24,6 +24,8 @@ const UserManagementModal = ({ isOpen, onClose, onSessionExpired }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [updatingUserId, setUpdatingUserId] = useState(null);
+  const [deleteUserId, setDeleteUserId] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (!isOpen) {
@@ -154,11 +156,41 @@ const UserManagementModal = ({ isOpen, onClose, onSessionExpired }) => {
     }
   };
 
+  const handleDeleteStaff = async (userId) => {
+    setError('');
+    setSuccess('');
+    setIsDeleting(true);
+
+    try {
+      const response = await apiRequest(`/auth/users/${userId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.status === 401) {
+        onSessionExpired();
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(await getApiMessage(response, 'Unable to delete the staff account.'));
+      }
+
+      setUsers((currentUsers) => currentUsers.filter((user) => user.id !== userId));
+      setDeleteUserId(null);
+      setSuccess('Staff account deleted.');
+    } catch (requestError) {
+      setError(requestError.message || 'Unable to delete the staff account.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const closeModal = () => {
     setError('');
     setSuccess('');
     setResetUserId(null);
     setResetPassword('');
+    setDeleteUserId(null);
     onClose();
   };
 
@@ -270,6 +302,44 @@ const UserManagementModal = ({ isOpen, onClose, onSessionExpired }) => {
                         <Key size={15} />
                         Reset password
                       </button>
+                      <button
+                        type="button"
+                        className="staff-delete-button"
+                        onClick={() => {
+                          setDeleteUserId(user.id);
+                          setError('');
+                          setSuccess('');
+                        }}
+                        disabled={isUpdating}
+                      >
+                        <Trash2 size={15} />
+                        Delete
+                      </button>
+                    </div>
+                  )}
+
+                  {isStaff && deleteUserId === user.id && (
+                    <div className="staff-delete-confirm">
+                      <p>
+                        Delete <strong>{user.name}</strong>? This cannot be undone.
+                      </p>
+                      <div className="staff-delete-confirm-actions">
+                        <button
+                          className="btn btn-danger"
+                          type="button"
+                          onClick={() => handleDeleteStaff(user.id)}
+                          disabled={isDeleting}
+                        >
+                          {isDeleting ? 'Deleting...' : 'Delete account'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeleteUserId(null)}
+                          disabled={isDeleting}
+                        >
+                          Cancel
+                        </button>
+                      </div>
                     </div>
                   )}
 

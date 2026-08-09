@@ -253,9 +253,77 @@
   color: var(--text-primary);
 }
 
+.staff-delete-button {
+  color: var(--danger) !important;
+}
+
+.staff-delete-button:hover {
+  color: #fca5a5 !important;
+}
+
 .access-user-actions button:disabled {
   cursor: wait;
   opacity: 0.55;
+}
+
+.staff-delete-confirm {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+}
+
+.staff-delete-confirm p {
+  margin: 0;
+  flex: 1;
+  min-width: 140px;
+  color: #fecaca;
+  font-size: 0.78rem;
+}
+
+.staff-delete-confirm-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.staff-delete-confirm-actions .btn {
+  padding: 7px 12px;
+  font-size: 0.75rem;
+}
+
+.staff-delete-confirm-actions button:not(.btn) {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 0;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.75rem;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.staff-delete-confirm-actions button:not(.btn):hover {
+  color: var(--text-primary);
+}
+
+.staff-delete-confirm-actions button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.staff-delete-confirm-actions button,
+.staff-delete-button {
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .password-reset-form {
