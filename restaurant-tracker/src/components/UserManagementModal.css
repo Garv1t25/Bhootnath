@@ -1,0 +1,293 @@
+.user-management-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.user-management-modal {
+  width: min(100%, 480px);
+  max-height: min(90vh, 720px);
+  padding: 24px;
+  overflow-y: auto;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  animation: userManagementSlideUp 0.25s ease-out;
+}
+
+@keyframes userManagementSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.user-management-header,
+.access-list-heading,
+.access-user-summary,
+.access-user-actions,
+.password-reset-form > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.user-management-header {
+  margin-bottom: 22px;
+}
+
+.user-management-eyebrow {
+  margin-bottom: 4px;
+  color: var(--accent-primary);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.user-management-header h2 {
+  font-size: 1.3rem;
+}
+
+.staff-create-form {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  background: rgba(139, 92, 246, 0.08);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: var(--radius-md);
+}
+
+.staff-create-form h3,
+.access-list-heading h3 {
+  font-size: 0.9rem;
+}
+
+.staff-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.staff-create-form label,
+.password-reset-form label {
+  display: grid;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.staff-create-form input,
+.password-reset-form input {
+  width: 100%;
+  padding: 10px 11px;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.85rem;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+}
+
+.staff-create-form input:focus,
+.password-reset-form input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+.staff-create-button {
+  gap: 7px;
+  width: 100%;
+  padding: 10px 14px;
+  font-size: 0.85rem;
+}
+
+.staff-create-button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.access-message {
+  margin-top: 14px;
+  padding: 10px 12px;
+  font-size: 0.8rem;
+  border-radius: 8px;
+}
+
+.access-error {
+  color: #fecaca;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.access-success {
+  color: #a7f3d0;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.access-list-heading {
+  margin: 24px 0 10px;
+}
+
+.access-list-heading span {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  color: var(--accent-primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: rgba(139, 92, 246, 0.14);
+  border-radius: var(--radius-full);
+  place-items: center;
+}
+
+.access-user-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.access-user-card {
+  padding: 13px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+}
+
+.access-user-summary > div:first-child {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.access-user-summary strong {
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.access-user-summary span {
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.access-user-badges {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.access-role,
+.access-status {
+  padding: 3px 6px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  border-radius: 4px;
+}
+
+.access-role-admin {
+  color: #c4b5fd;
+  background: rgba(139, 92, 246, 0.15);
+}
+
+.access-role-staff {
+  color: #bae6fd;
+  background: rgba(14, 165, 233, 0.13);
+}
+
+.access-status.is-active {
+  color: #a7f3d0;
+  background: rgba(16, 185, 129, 0.12);
+}
+
+.access-status.is-disabled {
+  color: #fecaca;
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.access-user-actions {
+  justify-content: flex-start;
+  margin-top: 12px;
+}
+
+.access-user-actions button,
+.password-reset-form button:not(.btn) {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 0;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.75rem;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.access-user-actions button:hover,
+.password-reset-form button:not(.btn):hover {
+  color: var(--text-primary);
+}
+
+.access-user-actions button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.password-reset-form {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.password-reset-form .btn {
+  padding: 8px 12px;
+  font-size: 0.75rem;
+}
+
+.access-empty-state {
+  padding: 20px 0;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+@media (max-width: 380px) {
+  .user-management-overlay {
+    padding: 0;
+  }
+
+  .user-management-modal {
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+
+  .staff-form-grid {
+    grid-template-columns: 1fr;
+  }
+}

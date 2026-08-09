@@ -1,0 +1,29 @@
+.fab {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  box-shadow: var(--shadow-lg);
+  padding: 0;
+}
+
+.fab:hover {
+  transform: scale(1.05) translateY(-2px);
+}
+
+.fab:active {
+  transform: scale(0.95);
+}
+
+@media (min-width: 480px) {
+  /* Keep it inside the max-width container if on larger screens */
+  .fab {
+    right: calc(50% - 216px); /* 480/2 = 240, 240-24 = 216 */
+  }
+}
