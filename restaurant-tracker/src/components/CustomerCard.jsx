@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import './CustomerCard.css';
 import { IndianRupee, Calendar, Phone, Trash2, Edit2, RefreshCw, MessageCircle, BellRing, Banknote, MoreVertical } from 'lucide-react';
-import ConfirmDialog from './ConfirmDialog';
 
 const formatLocalDate = (date) => {
   const year = date.getFullYear();
@@ -116,7 +115,10 @@ const CustomerCard = ({ customer, onDelete, onEdit, onRenew, onRecordPayment }) 
             <button 
               className="btn-icon" 
               style={{ color: 'var(--text-secondary)', padding: '4px' }}
-              onClick={() => setIsActionsMenuOpen(!isActionsMenuOpen)}
+              onClick={() => {
+                if (!isActionsMenuOpen) setIsDeleteConfirmOpen(false);
+                setIsActionsMenuOpen(!isActionsMenuOpen);
+              }}
               title="More actions"
             >
               <MoreVertical size={16} />
@@ -238,17 +240,22 @@ const CustomerCard = ({ customer, onDelete, onEdit, onRenew, onRecordPayment }) 
         </div>
       )}
 
-      <ConfirmDialog
-        isOpen={isDeleteConfirmOpen}
-        title="Delete customer?"
-        message={`Are you sure you want to delete ${customer.name}? This action cannot be undone.`}
-        confirmLabel="Delete"
-        onConfirm={() => {
-          setIsDeleteConfirmOpen(false);
-          onDelete?.(customer.id);
-        }}
-        onCancel={() => setIsDeleteConfirmOpen(false)}
-      />
+      {isDeleteConfirmOpen && (
+        <div className="delete-inline">
+          <div className="delete-inline-text">
+            <Trash2 size={15} />
+            <p>Delete <strong>{customer.name}</strong>? This cannot be undone.</p>
+          </div>
+          <div className="delete-inline-actions">
+            <button type="button" className="btn btn-secondary" onClick={() => setIsDeleteConfirmOpen(false)}>
+              Cancel
+            </button>
+            <button type="button" className="btn btn-danger" onClick={() => { setIsDeleteConfirmOpen(false); onDelete?.(customer.id); }}>
+              Delete
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
