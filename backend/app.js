@@ -22,16 +22,26 @@ const isProduction = process.env.NODE_ENV === "production";
 app.set("trust proxy", isProduction ? 1 : false);
 
 app.use(helmet());
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || !isProduction || allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
 
-    return callback(new Error("Origin is not allowed by CORS."));
-  },
-  credentials: true,
-}));
+const corsMiddleware = cors({ credentials: true });
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  let isSameOrigin = false;
+  if (origin && req.headers.host) {
+    try {
+      isSameOrigin = new URL(origin).host === req.headers.host;
+    } catch {
+      isSameOrigin = false;
+    }
+  }
+
+  if (!origin || !isProduction || isSameOrigin || allowedOrigins.includes(origin)) {
+    return corsMiddleware(req, res, next);
+  }
+
+  return res.status(403).json({ message: "Origin is not allowed by CORS." });
+});
 app.use(express.json({limit : "16kb"}));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
