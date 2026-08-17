@@ -58,6 +58,9 @@ const apiLimiter = rateLimit({
 app.use("/api", apiLimiter);
 app.use("/api/auth", authRouter);
 app.use("/api/customers", customerRouter);
+app.get("/test", (req, res) => {
+  res.send("All good!!!");
+});
 
 if (isProduction) {
   const __dirname = path.dirname(fileURLToPath(import.meta.url));

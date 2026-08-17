@@ -1,4 +1,5 @@
 import dotenv from "dotenv/config";
+import "./jobs/test.js";
 import connectDb from "./db/connectdb.js";
 import app from "./app.js";
 import { ensureInitialAdmin } from "./utils/ensureInitialAdmin.js";
@@ -15,6 +16,8 @@ const startServer = async () => {
     console.log(`Server is running on port ${PORT}`);
   });
 };
+
+
 
 startServer().catch((error) => {
   console.error("Unable to start the server:", error.message);
