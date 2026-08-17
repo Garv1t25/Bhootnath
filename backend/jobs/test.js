@@ -1,6 +1,6 @@
 import cron from "node-cron";
 
 
-cron.schedule('*/10 * * * *', () => {
+cron.schedule('*/5 * * * *', () => {
     console.log("Keeping Alive");
 });
