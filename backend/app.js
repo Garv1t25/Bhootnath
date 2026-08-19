@@ -61,6 +61,11 @@ app.use("/api/customers", customerRouter);
 app.get("/test", (req, res) => {
   res.send("All good!!!");
 });
+app.get("/health", (req, res) => {
+    res.status(200).json({
+        status: "OK"
+    });
+});
 
 if (isProduction) {
   const __dirname = path.dirname(fileURLToPath(import.meta.url));

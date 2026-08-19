@@ -1,0 +1,142 @@
+================================================================================
+           RESTAURANT TRACKER - REACT ARCHITECTURE & API CALLS GUIDE
+================================================================================
+
+1. OVERVIEW OF THE REACT APPLICATION ARCHITECTURE
+--------------------------------------------------------------------------------
+The frontend is a React application built with Vite located in the 
+`restaurant-tracker` directory.
+
+Key Architecture Highlights:
+- Main Entry Point: `src/main.jsx` renders `<App />`.
+- Central Hub (`src/App.jsx`): Holds all global states, including:
+  * `currentUser`: Tracks session & authentication state.
+  * `customers`: Stores array of currently loaded customer records.
+  * `stats`: Summary metrics (Total Active, Pending Payments, Revenue, etc.).
+  * `searchQuery` & `filter`: Search bar & category filter states.
+  * `pagination`: Page number, limits, total count, and infinite scroll status.
+  * Modal states: `isModalOpen` (Add/Edit), `paymentCustomer`, `isUserManagementOpen`.
+
+Component Hierarchy:
+- <LoginPage>: Rendered when no user session is active.
+- <Header>: Search bar, status filters, user avatar, export CSV button, user management toggle.
+- <DashboardStats>: Stat cards showing summary metrics.
+- <CustomerList> -> <CustomerCard>: Displays customer cards with action buttons (Edit, Renew, Record Payment, Delete).
+- <AddCustomerModal>: Form dialog to add a new customer or edit existing customer.
+- <PaymentModal>: Dialog to record payments.
+- <UserManagementModal>: Modal for Admin users to add, manage, and reset passwords for user accounts.
+
+
+2. CENTRALIZED API WRAPPER (`src/api.js`)
+--------------------------------------------------------------------------------
+All HTTP requests to the backend server pass through a helper in `src/api.js`.
+
+Code Structure:
+```javascript
+const API_BASE_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '');
+
+export const apiRequest = (path, options = {}) => {
+  const headers = new Headers(options.headers);
+
+  if (options.body && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+
+  return fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    credentials: 'include',
+    headers,
+  });
+};
+
+export const getApiMessage = async (response, fallbackMessage) => {
+  const data = await response.json().catch(() => null);
+  return data?.message || fallbackMessage;
+};
+```
+
+Key Responsibilities of `apiRequest`:
+1. Base URL Resolution: Uses `VITE_API_URL` environment variable if set, otherwise defaults to `/api` (proxied by Vite in dev mode).
+2. Automatic Headers: Automatically sets `'Content-Type': 'application/json'` whenever a request body is present.
+3. Cookie Credentials (`credentials: 'include'`): Essential for sending HTTP-only authentication session cookies (`httpOnly`) with every request.
+4. Error Handling (`getApiMessage`): Helper function to extract JSON error messages returned by the Express backend.
+
+
+3. DETAILED BREAKDOWN OF ALL API CALLS
+--------------------------------------------------------------------------------
+
+A. AUTHENTICATION & SESSION MANAGEMENT
+--------------------------------------
+1. Check Active Session (`restoreSession`)
+   - Endpoint: GET /api/auth/me
+   - Where: `App.jsx` inside a `useEffect` on app mount.
+   - Purpose: Verifies if the browser has a valid session cookie. If valid, sets `currentUser`.
+
+2. Sign In (`handleSubmit`)
+   - Endpoint: POST /api/auth/login
+   - Payload: `{ email, password }`
+   - Where: `LoginPage.jsx`
+   - Purpose: Authenticates user credentials. On success, sets `currentUser` and redirects to dashboard.
+
+3. Sign Out (`handleLogout`)
+   - Endpoint: POST /api/auth/logout
+   - Where: `App.jsx`
+   - Purpose: Clears session cookie on backend and resets local state (`handleSessionExpired`).
+
+4. Session Expiration Handling (401 Unauthorized)
+   - Every API request checks `if (response.status === 401)`. If 401 is returned, `handleSessionExpired()` clears the user state and displays the Login screen immediately.
+
+
+B. CUSTOMER MANAGEMENT
+----------------------
+1. Fetch Paginated Customer List (`fetchCustomersPage`)
+   - Endpoint: GET /api/customers?page=1&limit=20&search=...&filter=...
+   - Where: `App.jsx`
+   - Trigger: Triggered when `searchQuery`, `filter`, or `currentUser` changes (debounced by 300ms).
+   - Append Mode: Supported for infinite scrolling ("Load More").
+
+2. Fetch Dashboard Statistics (`fetchStats`)
+   - Endpoint: GET /api/customers/stats
+   - Where: `App.jsx`
+   - Purpose: Updates active count, pending dues, total customer metrics.
+
+3. Add New Customer (`handleAddCustomer`)
+   - Endpoint: POST /api/customers
+   - Payload: Customer object (name, phone, roomNumber, planType, amount, dates, notes, paidAmount)
+   - Where: Called from `AddCustomerModal.jsx` via `App.jsx`.
+
+4. Edit / Renew Customer (`handleEditCustomer` & `handleRenewCustomer`)
+   - Endpoint: PUT /api/customers/:id
+   - Payload: Updated customer fields.
+   - Where: `AddCustomerModal.jsx` / `CustomerCard.jsx`.
+
+5. Delete Customer (`handleDeleteCustomer`)
+   - Endpoint: DELETE /api/customers/:id
+   - Where: `CustomerCard.jsx` -> `App.jsx`.
+
+6. Record Payment (`handleRecordPayment`)
+   - Endpoint: POST /api/customers/:id/payments
+   - Payload: `{ amount, notes }`
+   - Where: `PaymentModal.jsx`.
+
+7. Export CSV (`handleExportCsv`)
+   - Endpoint: GET /api/customers/export
+   - Purpose: Fetches all customer records, converts to CSV format in browser, triggers `.csv` download.
+
+
+C. USER MANAGEMENT (Admin Only)
+-------------------------------
+Managed inside `src/components/UserManagementModal.jsx`:
+- GET /api/users - Fetch list of system users.
+- POST /api/users - Create new admin/staff user account.
+- PATCH /api/users/:id/status - Toggle active/inactive state of a user.
+- POST /api/users/:id/reset-password - Reset password for a user.
+
+
+4. DATA FLOW & REACT LIFECYCLE PATTERNS
+--------------------------------------------------------------------------------
+- Debouncing: Search and filter inputs use a 300ms timer (`setTimeout`) in `useEffect` to avoid firing unnecessary network calls on every single keystroke.
+- State Immutability & UI Updates: When a customer is added, updated, or paid, the `customers` state array is updated locally in React, and `fetchStats()` is called to refresh dashboard totals.
+- Reusable Modals: Components like `AddCustomerModal` handle local form state, validation, date formatting (`utils/dateUtils.js`), and delegate actual API calls back to parent handlers in `App.jsx`.
+
+================================================================================
