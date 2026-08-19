@@ -7,6 +7,7 @@ import AddCustomerModal from './components/AddCustomerModal';
 import LoginPage from './components/LoginPage';
 import UserManagementModal from './components/UserManagementModal';
 import PaymentModal from './components/PaymentModal';
+import PrivacyPolicy from './components/PrivacyPolicy';
 import { apiRequest, getApiMessage } from './api';
 import { customersToCsv, downloadCsv } from './utils/exportCsv';
 
@@ -283,6 +284,10 @@ function App() {
       handleSessionExpired();
     }
   };
+
+  if (window.location.pathname === '/privacy-policy') {
+    return <PrivacyPolicy />;
+  }
 
   if (isAuthLoading) {
     return <div className="auth-loading">Checking your session...</div>;
