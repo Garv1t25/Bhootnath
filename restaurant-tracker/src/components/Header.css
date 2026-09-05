@@ -86,12 +86,22 @@
   border-left: 2px solid var(--accent-primary);
 }
 
+.submenu-dropdown .submenu-history,
 .submenu-dropdown .submenu-export {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.submenu-dropdown .submenu-history {
   margin-top: 6px;
   border-top: 1px solid var(--border-color);
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.submenu-dropdown .submenu-export {
+  margin-top: 6px;
   color: var(--accent-primary);
   font-weight: 500;
 }

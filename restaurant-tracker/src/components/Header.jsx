@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Download, LogOut, Menu, Search, UserRound, Users, X } from 'lucide-react';
+import { Clock, Download, LogOut, Menu, Search, UserRound, Users, X } from 'lucide-react';
 import './Header.css';
 
-const Header = ({ searchQuery, setSearchQuery, filter, setFilter, currentUser, onLogout, onManageUsers, onExportCsv }) => {
+const Header = ({ searchQuery, setSearchQuery, filter, setFilter, currentUser, onLogout, onManageUsers, onExportCsv, onOpenHistory }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
 
@@ -49,6 +49,16 @@ const Header = ({ searchQuery, setSearchQuery, filter, setFilter, currentUser, o
             <li className={filter === 'expiring' ? 'active' : ''} onClick={() => handleFilterClick('expiring')}>Expiring soon (&lt;5 days)</li>
             <li className={filter === 'pending' ? 'active' : ''} onClick={() => handleFilterClick('pending')}>Pending Payments</li>
             <li className={filter === 'inactive' ? 'active' : ''} onClick={() => handleFilterClick('inactive')}>Inactive</li>
+            <li
+              className="submenu-history"
+              onClick={() => {
+                setIsMenuOpen(false);
+                onOpenHistory();
+              }}
+            >
+              <Clock size={16} />
+              3-Month Activity Report
+            </li>
             <li
               className="submenu-export"
               onClick={() => {

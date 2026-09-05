@@ -16,6 +16,8 @@ const CustomerCard = ({ customer, onDelete, onEdit, onRenew, onRecordPayment }) 
   const [isNotesExpanded, setIsNotesExpanded] = useState(false);
   const [isActionsMenuOpen, setIsActionsMenuOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [isRenewConfirmOpen, setIsRenewConfirmOpen] = useState(false);
+  const [isRenewPaid, setIsRenewPaid] = useState(true);
   
   // Calculate days left
   const today = new Date();
@@ -56,26 +58,40 @@ const CustomerCard = ({ customer, onDelete, onEdit, onRenew, onRecordPayment }) 
 
   const getReminderLink = () => `https://wa.me/${getWhatsAppNumber()}?text=${encodeURIComponent(getReminderMessage())}`;
 
-  // Quick renew handler
-  const handleRenew = () => {
+  const getRenewPreview = () => {
     const newStart = new Date(startDate);
     const newEnd = new Date(endDate);
     newStart.setDate(newStart.getDate() + 30);
     newEnd.setDate(newEnd.getDate() + 30);
-
-    // A long-expired subscription needs more than one 30-day shift to be active again.
     if (newEnd < today) {
       const additionalDays = Math.ceil((today - newEnd) / (1000 * 60 * 60 * 24));
       newStart.setDate(newStart.getDate() + additionalDays);
       newEnd.setDate(newEnd.getDate() + additionalDays);
     }
+    return { newStart, newEnd };
+  };
 
+  // Quick renew handler — asks whether renewal amount is paid
+  const handleRenew = () => {
+    const { newStart, newEnd } = getRenewPreview();
     const renewedCustomer = {
       ...customer,
       startDate: formatLocalDate(newStart),
       endDate: formatLocalDate(newEnd),
+      paidAmount: isRenewPaid ? amount : 0,
     };
     onRenew?.(renewedCustomer);
+  };
+
+  const handleConfirmRenew = () => {
+    setIsRenewConfirmOpen(false);
+    handleRenew();
+  };
+
+  const openRenewDialog = () => {
+    setIsDeleteConfirmOpen(false);
+    setIsRenewPaid(pending === 0);
+    setIsRenewConfirmOpen(true);
   };
 
   const handleDelete = () => {
@@ -156,7 +172,7 @@ const CustomerCard = ({ customer, onDelete, onEdit, onRenew, onRecordPayment }) 
                   {(isExpiringSoon || !isActive) && (
                     <button 
                       className="actions-menu-item"
-                      onClick={() => { closeActionsMenu(); handleRenew(); }}
+                      onClick={() => { closeActionsMenu(); openRenewDialog(); }}
                     >
                       <RefreshCw size={15} />
                       Quick renew
@@ -252,6 +268,54 @@ const CustomerCard = ({ customer, onDelete, onEdit, onRenew, onRecordPayment }) 
             </button>
             <button type="button" className="btn btn-danger" onClick={() => { setIsDeleteConfirmOpen(false); onDelete?.(customer.id); }}>
               Delete
+            </button>
+          </div>
+        </div>
+      )}
+
+      {isRenewConfirmOpen && (
+        <div className="renew-confirm">
+          <div className="renew-confirm-header">
+            <RefreshCw size={15} />
+            <strong>Renew {customer.name}?</strong>
+          </div>
+          <p className="renew-confirm-dates">
+            {(() => { const { newStart, newEnd } = getRenewPreview(); return `${newStart.toLocaleDateString('en-GB')} – ${newEnd.toLocaleDateString('en-GB')} · ${customer.plan} · ${formatCurrency(amount)}`; })()}
+          </p>
+          {pending > 0 && (
+            <p className="renew-confirm-warning">
+              Current pending {formatCurrency(pending)} (Paid {formatCurrency(paid)}). It will carry if you renew without recording payment.
+            </p>
+          )}
+          <div className="renew-confirm-choice">
+            <span className="renew-choice-label">Is the renewal amount paid?</span>
+            <div className="renew-choice-options">
+              <label className={`renew-choice ${isRenewPaid ? 'selected' : ''}`}>
+                <input
+                  type="radio"
+                  name={`renew-paid-${customer.id}`}
+                  checked={isRenewPaid}
+                  onChange={() => setIsRenewPaid(true)}
+                />
+                Paid — {formatCurrency(amount)}
+              </label>
+              <label className={`renew-choice ${!isRenewPaid ? 'selected' : ''}`}>
+                <input
+                  type="radio"
+                  name={`renew-paid-${customer.id}`}
+                  checked={!isRenewPaid}
+                  onChange={() => setIsRenewPaid(false)}
+                />
+                Not paid — {formatCurrency(pending > 0 ? pending : amount)} due
+              </label>
+            </div>
+          </div>
+          <div className="renew-confirm-actions">
+            <button type="button" className="btn btn-secondary" onClick={() => setIsRenewConfirmOpen(false)}>
+              Cancel
+            </button>
+            <button type="button" className="btn btn-primary" onClick={handleConfirmRenew}>
+              Renew as {isRenewPaid ? 'Paid' : 'Pending'}
             </button>
           </div>
         </div>

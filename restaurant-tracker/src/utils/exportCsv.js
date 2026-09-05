@@ -1,9 +1,25 @@
 const escapeCsvValue = (value) => {
   const text = String(value ?? '');
-  if (/[",\n]/.test(text)) {
-    return `"${text.replace(/"/g, '""')}"`;
+  const safeText = /^[=+\-@]/.test(text) ? `'${text}` : text;
+  if (/[",\n]/.test(safeText)) {
+    return `"${safeText.replace(/"/g, '""')}"`;
   }
-  return text;
+  return safeText;
+};
+
+const getHistoryMessage = (item) => {
+  if (item.message) return item.message;
+
+  const messages = {
+    created: 'Customer added.',
+    updated: 'Customer details updated.',
+    renewed: 'Subscription renewed.',
+    payment_recorded: 'Payment recorded.',
+    deleted: 'Customer record deleted.',
+    baseline_import: 'Existing customer record imported from the previous data.',
+  };
+
+  return messages[item.action] || '';
 };
 
 export const customersToCsv = (customers) => {
@@ -33,6 +49,65 @@ export const customersToCsv = (customers) => {
       daysLeft >= 0 ? 'Active' : 'Expired',
       daysLeft,
       customer.notes,
+    ];
+  });
+
+  return [headers, ...rows]
+    .map((row) => row.map(escapeCsvValue).join(','))
+    .join('\n');
+};
+
+export const historyToCsv = (historyItems) => {
+  const headers = [
+    'Date & Time',
+    'Customer Name',
+    'Mobile',
+    'Action',
+    'Activity Details',
+    'Plan',
+    'Plan Type',
+    'Plan Amount',
+    'Payment Amount',
+    'Total Paid',
+    'Start Date',
+    'End Date',
+    'Notes'
+  ];
+
+  const actionMap = {
+    created: 'Created',
+    updated: 'Updated',
+    renewed: 'Renewed',
+    payment_recorded: 'Payment Recorded',
+    deleted: 'Deleted',
+    baseline_import: 'Initial Record'
+  };
+
+  const rows = historyItems.map((item) => {
+    const timestampFormatted = item.timestamp
+      ? new Date(item.timestamp).toLocaleString('en-IN')
+      : '';
+    const startDateFormatted = item.startDate
+      ? new Date(item.startDate).toLocaleDateString('en-IN')
+      : '';
+    const endDateFormatted = item.endDate
+      ? new Date(item.endDate).toLocaleDateString('en-IN')
+      : '';
+
+    return [
+      timestampFormatted,
+      item.customerName || '',
+      item.customerMobile || '',
+      actionMap[item.action] || item.action || '',
+      getHistoryMessage(item),
+      item.plan || '',
+      item.planType || '',
+      item.amount ?? '',
+      item.paymentAmount ?? '',
+      item.paidAmount ?? '',
+      startDateFormatted,
+      endDateFormatted,
+      item.notes || ''
     ];
   });
 
