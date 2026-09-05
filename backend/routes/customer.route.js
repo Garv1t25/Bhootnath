@@ -2,6 +2,9 @@ import express from "express";
 import {
   addCustomer,
   deleteCustomer,
+  deleteCustomerHistoryActivity,
+  getCustomerHistory,
+  getCustomerHistoryExport,
   getCustomerStats,
   getCustomers,
   getCustomersExport,
@@ -16,6 +19,9 @@ router.use(requireAuth);
 router.get("/", getCustomers);
 router.get("/stats", getCustomerStats);
 router.get("/export", getCustomersExport);
+router.get("/history", getCustomerHistory);
+router.get("/history/export", getCustomerHistoryExport);
+router.delete("/history/:activityId", deleteCustomerHistoryActivity);
 router.post("/", addCustomer);
 router.put("/:id", updateCustomer);
 router.delete("/:id", deleteCustomer);

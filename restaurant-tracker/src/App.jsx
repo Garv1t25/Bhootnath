@@ -7,6 +7,7 @@ import AddCustomerModal from './components/AddCustomerModal';
 import LoginPage from './components/LoginPage';
 import UserManagementModal from './components/UserManagementModal';
 import PaymentModal from './components/PaymentModal';
+import CustomerHistoryModal from './components/CustomerHistoryModal';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import { apiRequest, getApiMessage } from './api';
 import { customersToCsv, downloadCsv } from './utils/exportCsv';
@@ -26,6 +27,7 @@ function App() {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isUserManagementOpen, setIsUserManagementOpen] = useState(false);
   const [paymentCustomer, setPaymentCustomer] = useState(null);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
   const handleSessionExpired = () => {
     setCurrentUser(null);
@@ -35,6 +37,7 @@ function App() {
     setCustomerToEdit(null);
     setIsUserManagementOpen(false);
     setPaymentCustomer(null);
+    setIsHistoryOpen(false);
   };
 
   const fetchCustomersPage = async (pageNumber, { append = false } = {}) => {
@@ -155,11 +158,12 @@ function App() {
     }
   };
 
-  const handleEditCustomer = async (updatedCustomer) => {
+  const handleEditCustomer = async (updatedCustomer, { isRenewal = false } = {}) => {
     try {
+      const requestBody = isRenewal ? { ...updatedCustomer, isRenewal: true } : updatedCustomer;
       const response = await apiRequest(`/customers/${updatedCustomer.id}`, {
         method: 'PUT',
-        body: JSON.stringify(updatedCustomer)
+        body: JSON.stringify(requestBody)
       });
 
       if (response.status === 401) {
@@ -184,8 +188,7 @@ function App() {
   };
 
   const handleRenewCustomer = async (renewedCustomer) => {
-    // Renew is just an edit with new dates
-    await handleEditCustomer(renewedCustomer);
+    await handleEditCustomer(renewedCustomer, { isRenewal: true });
   };
 
   const handleDeleteCustomer = async (id) => {
@@ -308,6 +311,7 @@ function App() {
         onLogout={handleLogout}
         onManageUsers={() => setIsUserManagementOpen(true)}
         onExportCsv={handleExportCsv}
+        onOpenHistory={() => setIsHistoryOpen(true)}
       />
 
       <DashboardStats stats={stats} />
@@ -347,6 +351,12 @@ function App() {
         isOpen={Boolean(paymentCustomer)}
         onClose={() => setPaymentCustomer(null)}
         onRecordPayment={handleRecordPayment}
+      />
+
+      <CustomerHistoryModal
+        isOpen={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
+        onSessionExpired={handleSessionExpired}
       />
 
       {currentUser.role === 'admin' && (
