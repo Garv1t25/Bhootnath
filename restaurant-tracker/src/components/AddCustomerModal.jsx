@@ -79,7 +79,21 @@ const AddCustomerModal = ({ isOpen, onClose, onAdd, onEdit, customerToEdit, cust
       formatted.paidAmount = customerToEdit.paidAmount ?? customerToEdit.amount;
       setFormData(formatted);
     } else {
-      setFormData({ name: '', mobile: '', plan: '', planType: 'both', amount: '', startDate: '', endDate: '', notes: '', paidAmount: '' });
+      const today = new Date();
+      const defaultEnd = new Date(today);
+      defaultEnd.setDate(defaultEnd.getDate() + 29); // 30 days total including start date
+
+      setFormData({
+        name: '',
+        mobile: '',
+        plan: '',
+        planType: 'both',
+        amount: '',
+        startDate: toDisplayDate(formatLocalDate(today)),
+        endDate: toDisplayDate(formatLocalDate(defaultEnd)),
+        notes: '',
+        paidAmount: ''
+      });
     }
     setIsMobileBlurred(false);
     setFormError('');
@@ -103,6 +117,21 @@ const AddCustomerModal = ({ isOpen, onClose, onAdd, onEdit, customerToEdit, cust
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    if (name === 'startDate') {
+      const parsed = parseDisplayDate(value);
+      if (parsed) {
+        const sDate = new Date(parsed + 'T00:00:00');
+        const eDate = new Date(sDate);
+        eDate.setDate(eDate.getDate() + 29); // 30 days including start date
+        setFormData(prev => ({
+          ...prev,
+          startDate: value,
+          endDate: toDisplayDate(formatLocalDate(eDate))
+        }));
+        setFormError('');
+        return;
+      }
+    }
     setFormData(prev => ({ ...prev, [name]: value }));
     setFormError('');
   };
@@ -135,7 +164,7 @@ const AddCustomerModal = ({ isOpen, onClose, onAdd, onEdit, customerToEdit, cust
   const handleTemplateSelect = (template) => {
     const today = new Date();
     const endDate = new Date();
-    endDate.setDate(endDate.getDate() + template.duration);
+    endDate.setDate(endDate.getDate() + (template.duration - 1)); // 30 days including start date
 
     setFormData(prev => ({
       ...prev,

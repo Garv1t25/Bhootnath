@@ -18,6 +18,8 @@ const CustomerCard = ({ customer, onDelete, onEdit, onRenew, onRecordPayment }) 
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isRenewConfirmOpen, setIsRenewConfirmOpen] = useState(false);
   const [isRenewPaid, setIsRenewPaid] = useState(true);
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
   
   // Calculate days left
   const today = new Date();
@@ -27,6 +29,8 @@ const CustomerCard = ({ customer, onDelete, onEdit, onRenew, onRecordPayment }) 
   const startDate = new Date(customer.startDate);
   startDate.setHours(0, 0, 0, 0);
   const daysLeft = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+  const gapDays = Math.ceil((today - endDate) / (1000 * 60 * 60 * 24));
+  const isGapMoreThan31 = gapDays > 31;
   const isActive = daysLeft >= 0;
   const isExpiringSoon = daysLeft >= 0 && daysLeft <= 3;
 
@@ -59,16 +63,17 @@ const CustomerCard = ({ customer, onDelete, onEdit, onRenew, onRecordPayment }) 
   const getReminderLink = () => `https://wa.me/${getWhatsAppNumber()}?text=${encodeURIComponent(getReminderMessage())}`;
 
   const getRenewPreview = () => {
-    const newStart = new Date(startDate);
-    const newEnd = new Date(endDate);
-    newStart.setDate(newStart.getDate() + 30);
-    newEnd.setDate(newEnd.getDate() + 30);
-    if (newEnd < today) {
-      const additionalDays = Math.ceil((today - newEnd) / (1000 * 60 * 60 * 24));
-      newStart.setDate(newStart.getDate() + additionalDays);
-      newEnd.setDate(newEnd.getDate() + additionalDays);
+    if (customStartDate && customEndDate) {
+      return {
+        newStart: new Date(customStartDate + 'T00:00:00'),
+        newEnd: new Date(customEndDate + 'T00:00:00'),
+      };
     }
-    return { newStart, newEnd };
+
+    const defaultStart = new Date(today);
+    const defaultEnd = new Date(today);
+    defaultEnd.setDate(defaultEnd.getDate() + 29);
+    return { newStart: defaultStart, newEnd: defaultEnd };
   };
 
   // Quick renew handler — asks whether renewal amount is paid
@@ -88,9 +93,33 @@ const CustomerCard = ({ customer, onDelete, onEdit, onRenew, onRecordPayment }) 
     handleRenew();
   };
 
+  const handleStartDateChange = (e) => {
+    const newS = e.target.value;
+    setCustomStartDate(newS);
+    if (newS) {
+      const sDate = new Date(newS + 'T00:00:00');
+      sDate.setDate(sDate.getDate() + 29); // 30 days total including start date
+      setCustomEndDate(formatLocalDate(sDate));
+    }
+  };
+
   const openRenewDialog = () => {
     setIsDeleteConfirmOpen(false);
     setIsRenewPaid(pending === 0);
+    
+    let baseStart = new Date(endDate);
+    if (baseStart < today) {
+      baseStart = new Date(today);
+    } else {
+      baseStart.setDate(baseStart.getDate() + 1);
+    }
+    
+    const baseEnd = new Date(baseStart);
+    baseEnd.setDate(baseEnd.getDate() + 29); // 30 days total including start date
+    
+    setCustomStartDate(formatLocalDate(baseStart));
+    setCustomEndDate(formatLocalDate(baseEnd));
+
     setIsRenewConfirmOpen(true);
   };
 
@@ -282,6 +311,26 @@ const CustomerCard = ({ customer, onDelete, onEdit, onRenew, onRecordPayment }) 
           <p className="renew-confirm-dates">
             {(() => { const { newStart, newEnd } = getRenewPreview(); return `${newStart.toLocaleDateString('en-GB')} – ${newEnd.toLocaleDateString('en-GB')} · ${customer.plan} · ${formatCurrency(amount)}`; })()}
           </p>
+          <div className="renew-manual-dates">
+            <div className="renew-date-group">
+              <label>New Start Date</label>
+              <input
+                type="date"
+                value={customStartDate}
+                onChange={handleStartDateChange}
+                className="renew-date-input"
+              />
+            </div>
+            <div className="renew-date-group">
+              <label>New End Date</label>
+              <input
+                type="date"
+                value={customEndDate}
+                onChange={(e) => setCustomEndDate(e.target.value)}
+                className="renew-date-input"
+              />
+            </div>
+          </div>
           {pending > 0 && (
             <p className="renew-confirm-warning">
               Current pending {formatCurrency(pending)} (Paid {formatCurrency(paid)}). It will carry if you renew without recording payment.
