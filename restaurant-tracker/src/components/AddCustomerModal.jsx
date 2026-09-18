@@ -157,6 +157,9 @@ const AddCustomerModal = ({ isOpen, onClose, onAdd, onEdit, customerToEdit, cust
     if (!parseDisplayDate(formData.endDate)) {
       return 'End date must be in dd/mm/yyyy format.';
     }
+    if(duplicateCustomer){
+      return 'Please enter a valid no.';
+    }
 
     return null;
   };
@@ -192,11 +195,6 @@ const AddCustomerModal = ({ isOpen, onClose, onAdd, onEdit, customerToEdit, cust
       startDate: parseDisplayDate(formData.startDate),
       endDate: parseDisplayDate(formData.endDate),
     };
-
-    if (duplicateCustomer) {
-      setIsDuplicateConfirmOpen(true);
-      return;
-    }
 
     if (customerToEdit) {
       onEdit(payload);
@@ -323,17 +321,6 @@ const AddCustomerModal = ({ isOpen, onClose, onAdd, onEdit, customerToEdit, cust
           </button>
         </form>
       </div>
-
-      <ConfirmDialog
-        isOpen={isDuplicateConfirmOpen}
-        title="Duplicate number"
-        message={`This mobile number is already used by ${duplicateCustomer?.name} (${duplicateCustomer?.plan}). You cannot save a customer with the same number.`}
-        confirmLabel="OK"
-        danger={false}
-        showCancel={false}
-        onConfirm={() => setIsDuplicateConfirmOpen(false)}
-        onCancel={() => setIsDuplicateConfirmOpen(false)}
-      />
     </div>
   );
 };
