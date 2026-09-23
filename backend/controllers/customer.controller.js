@@ -1,6 +1,7 @@
 import { Customer } from "../models/Customer.model.js";
 import { CustomerActivity } from "../models/CustomerActivity.model.js";
 import { CustomerActivityMigration } from "../models/CustomerActivityMigration.model.js";
+import plan_adder from "../whatsapp_api/plan_adder.js";
 
 const activityActions = new Set([
   "created",
@@ -524,6 +525,9 @@ export const addCustomer = async (req, res) => {
     const newCustomer = new Customer({ ...body, mobile });
     const savedCustomer = await newCustomer.save();
     await logCustomerActivity({ customer: savedCustomer, action: "created", req });
+    const SDformatted = body.startDate.split("T")[0].split("-").reverse().join("-");
+    const EDformatted = body.endDate.split("T")[0].split("-").reverse().join("-");
+    plan_adder(mobile,body.name,"activated",body.plan,body.amount,SDformatted,EDformatted);
     res.status(201).json(savedCustomer);
   } catch (error) {
     res.status(400).json({ message: "Error adding customer", error: error.message });
@@ -560,12 +564,18 @@ export const updateCustomer = async (req, res) => {
       { ...customerData, mobile },
       { new: true }
     );
+
     await logCustomerActivity({
       customer: updatedCustomer,
       action: isRenewal === true ? "renewed" : "updated",
       previousCustomer: existingCustomer,
       req,
     });
+    if (isRenewal === true) {
+      const SDformatted = existingCustomer.startDate.toISOString().split("T")[0].split("-").reverse().join("-");
+      const EDformatted = existingCustomer.endDate.toISOString().split("T")[0].split("-").reverse().join("-");
+      plan_adder(existingCustomer.mobile,existingCustomer.name,"renewed",existingCustomer.plan,existingCustomer.amount,SDformatted,EDformatted);
+    }
     res.status(200).json(updatedCustomer);
   } catch (error) {
     res.status(400).json({ message: "Error updating customer", error: error.message });
